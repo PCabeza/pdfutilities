@@ -15,9 +15,9 @@ if [ "$#" -lt 2 ];then
   <creation>Fecha de creacion</creation>
   <producer>Nombre del productor</producer>
 
-  <index>
+  <index opened-depth="3">
     <entry name="Seccion 1" page="1"></entry>
-    <entry name="Seccion 2" page="2">
+    <entry name="Seccion 2" page="2" default-state="closed">
       <entry name="Subseccion 2.1" page="3"></entry>
       <entry name="Subseccion 2.2" page="4"></entry>
     </entry>

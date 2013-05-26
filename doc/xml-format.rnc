@@ -1,0 +1,62 @@
+grammar {
+   start = metadata
+   
+
+   # root metadata element for the xml file
+   metadata = element metadata{
+      information? & 
+      index? &
+      labeling?
+   }
+
+
+
+   # specifies metadata information of the pdf as stated in pdf standard
+   information = 
+      (
+         element author {text}? &
+         element title {text}? &
+         element subject {text}? &
+         element keyworkds {text}? &
+         element creator {text}? &
+         element creation { xsd:date }? & # creation date
+         element producer {text}?
+      )
+
+
+
+   # specifies a bookmark index for the pdf
+   index = element index{
+      attribute opened-depth { xsd:int }?, # up to this depth elements will be
+                                           # opened by default, after it
+                                           # elements will be closed
+      indexEntry+ 
+   }
+
+   # each entry represents a bookmark in the pdf
+   indexEntry = element entry {
+      attribute name { text }, # text shown in bookmark entry
+      attribute page { xsd:int }, # abs. page where bookmar should be placed
+      attribute default-state { "opened" | "closed" }?, # default state of
+                                                        # bookmark int TOC
+      indexEntry* 
+   }
+
+
+
+   # sets the way the pages of the pdf should be labeled (numbered)
+   labeling = element pagelabeling { label+ }
+
+   # each label represents a change from previous label (in start
+   # order) to the current label
+   label = element label { 
+      attribute start { std:int }, # absolute stating page of the label
+      attribute prefix { text }?, # text prefix for the label
+      (
+         attribute format { "roman" | "arabic" }, # format of the labeling
+         					  # roman: letter i,ii,...
+                                                  # arabic: decimal number
+         attribute start-value { std:int }? # stating value of the label
+      )? # if format attrb not specified, just prefix alone will be shown
+   }
+}

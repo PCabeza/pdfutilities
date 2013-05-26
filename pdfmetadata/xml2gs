@@ -7,7 +7,6 @@
 
 # For information about xml format and examples, see pdfmetadata help
 
-# TODO add a limit to TOC default depth (only show by default some items)
 # TODO add better help information
 import sys
 from xml.dom.minidom import parse, parseString
@@ -23,16 +22,22 @@ def eliminateText(node):
         node.removeChild(n)
     
 
-def walkindex(node):
+def walkindex(node,opdepth=3,depth=0):
     if node.nodeName=="entry":
-        count="" if node.childNodes.length==0 \
-                 else "/Count "+str(node.childNodes.length)
+        count="" 
+        if node.childNodes.length!=0:
+            if (("default-state" in node.attributes.keys() and \
+                node.attributes["default-state"].value=="closed") or\
+                depth>=opdepth):
+                count="/Count -"+str(node.childNodes.length)
+            else: count="/Count "+str(node.childNodes.length)
+
         title=node.attributes["name"].value
         page=node.attributes["page"].value
         print '[%(count)s /Title (%(title)s) /Page %(page)s /OUT pdfmark' %\
-            {'count':count,'title':title,'page':page}
+              {'count':count,'title':title,'page':page}
     for n in node.childNodes:
-        walkindex(n)
+        walkindex(n,opdepth,depth+1)
 
 
 def generateLabeling(labellist):
@@ -54,51 +59,62 @@ def generateLabeling(labellist):
         vect.append(aux)
     return vect
 
-
-
-
-if len(sys.argv)<=1:
-    print "Usage: xml2gs <xmlfile>"
-    sys.exit(1)
-
 # list of xml tags and translations for metadata
 metalist={"author":"Author","title":"Title","subject":"Subject",\
           "keywords":"Keywords","creation":"CreationDate",\
           "producer":"Producer","creator":"Creator"}
 
-xmlfile=open(sys.argv[1]).read().replace("\n","")
-dom1 = parseString(xmlfile) # parse an XML file by name
+def main(argv=None):
+    if len(argv)<=1:
+        print "Usage: xml2gs <xmlfile>"
+        return 1
 
-# get metadata and eliminate empty #text fields
-meta=dom1.getElementsByTagName("metadata")[0];
-eliminateText(meta)
+    xmlfile=open(sys.argv[1]).read().replace("\n","")
+    dom1=parseString(xmlfile) # parse an XML file by name
 
-# process pdf metada
-printany= False
-for key in metalist.keys():
-    elist=meta.getElementsByTagName(key)
-    if elist.length!=0:
-        print ('' if printany else '[') ,'/%(name)s (%(val)s)' %\
-            {'name':metalist[key],'val':elist[0].firstChild.data}
-        printany=True
-if printany:
-    print "/DOCINFO pdfmark\n"
+    # get metadata and eliminate empty #text fields
+    meta=dom1.getElementsByTagName("metadata")[0];
+    eliminateText(meta)
+    
+    # process pdf metada
+    printany= False
+    for key in metalist.keys():
+        elist=meta.getElementsByTagName(key)
+        if elist.length!=0:
+            print ('' if printany else '[') ,'/%(name)s (%(val)s)' %\
+                {'name':metalist[key],'val':elist[0].firstChild.data}
+            printany=True
+    if printany:
+        print "/DOCINFO pdfmark\n"
 
-# process index
-index=meta.getElementsByTagName("index")
-if index.length!=0:
-    walkindex(index[0])
-    print
 
-#process labeling
-labeling=meta.getElementsByTagName("pagelabeling");
-if labeling.length!=0:
-    lab=sorted(generateLabeling(labeling[0]))
-    if len(lab)!=0:
-        print '[/_objdef {pl} /type /dict /OBJ pdfmark'
-        print '[{pl} <</Nums ['
-        for l in lab:
-            print '%(pag)s << %(pref)s %(form)s %(st)s >>' % \
-                       {"pag":int(l[0])-1,"pref":l[1],"form":l[2],"st":l[3]}
-        print "]>> /PUT pdfmark"
-        print "[{Catalog} <</PageLabels {pl}>> /PUT pdfmark"
+    # process index
+    index=meta.getElementsByTagName("index")
+    if index.length!=0:
+        if "opened-depth" in index[0].attributes.keys():
+            walkindex(index[0],\
+                      int(index[0].attributes["opened-depth"].value))
+        else: walkindex(index[0])
+        print
+
+
+    #process labeling
+    labeling=meta.getElementsByTagName("pagelabeling");
+    if labeling.length!=0:
+        lab=sorted(generateLabeling(labeling[0]))
+        if len(lab)!=0:
+            print '[/_objdef {pl} /type /dict /OBJ pdfmark'
+            print '[{pl} <</Nums ['
+            for l in lab:
+                print '%(pag)s << %(pref)s %(form)s %(st)s >>' % \
+                    {"pag":int(l[0])-1,"pref":l[1],"form":l[2],"st":l[3]}
+            print "]>> /PUT pdfmark"
+            print "[{Catalog} <</PageLabels {pl}>> /PUT pdfmark"
+
+    return 0
+
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+    
