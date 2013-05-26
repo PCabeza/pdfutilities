@@ -1,0 +1,48 @@
+#! /bin/bash --
+# author: Pablo Cabeza García
+# requires: ghostscript (gs) and xml2gs (included)
+
+if [ "$#" -lt 2 ];then 
+    echo "Usage: pdfmatadata <input.pdf> <metadata.xml> [output.pdf]"
+    echo -e "\nExample of xml metadata file:"
+    cat <<EOF
+<metadata>
+  <author>Nombre autor</author>
+  <title>titulo pdf</title>
+  <subject>tema del pdf</subject>
+  <keywords>palabra 1, palabra 2,... y palabra n</keywords>
+  <creator>Nombre del creador</creator>
+  <creation>Fecha de creacion</creation>
+  <producer>Nombre del productor</producer>
+
+  <index>
+    <entry name="Seccion 1" page="1"></entry>
+    <entry name="Seccion 2" page="2">
+      <entry name="Subseccion 2.1" page="3"></entry>
+      <entry name="Subseccion 2.2" page="4"></entry>
+    </entry>
+  </index>
+
+  <pagelabeling>
+    <label start="1" prefix="Cover"></label>
+    <label start="2" format="roman"></label>
+    <label start="4" format="arabic" start-value="3"></label>
+  </pagelabeling>
+</metadata>
+EOF
+    exit 1
+fi
+
+
+SCRIPTPATH=
+SCRIPTNAME=xml2gs
+INPUT=$1
+METADATA=$2
+OUTPUT=$3
+[ "$#" -le 2 ] && OUTPUT=out.pdf
+TMPFILE=`mktemp`
+
+$SCRIPTPATH$SCRIPTNAME $METADATA > $TMPFILE
+gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress \
+    -sOutputFile="$OUTPUT" "$INPUT" "$TMPFILE"
+rm $TMPFILE
