@@ -1,0 +1,11 @@
+The structure is as follows:
+
+* metadata internal datastructure
+
+* XML-metadata module that transforms from xml to internal metadata
+  datastructure and viceversa
+
+* metadata-gs module that gets the actual ghostscript commands to
+  process the pdf
+
+* gs module to feed ghostscript with commands from the previous module

@@ -2,47 +2,113 @@
 # author: Pablo Cabeza García
 # requires: ghostscript (gs) and xml2gs (included)
 
-if [ "$#" -lt 2 ];then 
-    echo "Usage: pdfmatadata <input.pdf> <metadata.xml> [output.pdf]"
-    echo -e "\nExample of xml metadata file:"
+
+# gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress \
+#     -sOutputFile="$OUTPUT" \
+#     -dNumRenderingThreads=`nproc` \ # use up to 4 threads
+#     -dNOGC \ #disable garbage collector
+#     -dBufferSpace=500000000 \ # 500mb of band buffer
+#     -c "100000000 setvmthreshold" \ # set ram to 100mb
+#     -f "$INPUT" "$TMPFILE"
+
+
+# TODO -O flag
+function helpmsg { 
+    cat << EOF
+Usage: 
+	pdfmetadata [-O] update <input.pdf> <metadata.xml> [output.pdf]
+	pdfmetadata xmlmodel <output.xml>
+
+
+Commands:
+	update		updated metadata information of the pdf
+
+	xmlmodel	creates a model xml file of metadata
+
+Switches:
+	-O		overwrite input file instead of writing to output 
+			file, it overrides output file if specified.
+EOF
+}
+
+function emptyxml {
     cat <<EOF
 <metadata>
-  <author>Nombre autor</author>
-  <title>titulo pdf</title>
-  <subject>tema del pdf</subject>
-  <keywords>palabra 1, palabra 2,... y palabra n</keywords>
-  <creator>Nombre del creador</creator>
-  <creation>Fecha de creacion</creation>
-  <producer>Nombre del productor</producer>
+  <author></author>
+  <title></title>
+  <subject></subject>
+  <keywords></keywords>
+  <creator></creator>
+  <creation></creation>
+  <producer></producer>
 
-  <index opened-depth="3">
+  <index opened-depth="2">
     <entry name="Seccion 1" page="1"></entry>
     <entry name="Seccion 2" page="2" default-state="closed">
-      <entry name="Subseccion 2.1" page="3"></entry>
-      <entry name="Subseccion 2.2" page="4"></entry>
+      <entry name="Subseccion 2.1" page="3">
+	<entry name="SubSubseciont 2.1.1" page="3"></entry>
+	<entry name="SubSubseciont 2.1.2" page="4"></entry>
+      </entry>
+      <entry name="Subseccion 2.2" page="5"></entry>
     </entry>
   </index>
 
   <pagelabeling>
     <label start="1" prefix="Cover"></label>
-    <label start="2" format="roman"></label>
-    <label start="4" format="arabic" start-value="3"></label>
+    <label start="2" format="roman" start-value="2"></label>
+    <label start="20" format="arabic"></label>
   </pagelabeling>
 </metadata>
 EOF
-    exit 1
-fi
+}
 
-
-SCRIPTPATH=
+SCRIPTPATH=./
 SCRIPTNAME=xml2gs
-INPUT=$1
-METADATA=$2
-OUTPUT=$3
-[ "$#" -le 2 ] && OUTPUT=out.pdf
-TMPFILE=`mktemp`
 
-$SCRIPTPATH$SCRIPTNAME $METADATA > $TMPFILE
-gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress \
-    -sOutputFile="$OUTPUT" "$INPUT" "$TMPFILE"
-rm $TMPFILE
+COMMAND=
+INPUT=
+METADATA=
+OUTPUT="output"
+
+# parse parameters
+while [ ! -z "$1" ];do
+    case "$1" in
+	update)
+	    COMMAND="u"
+	    shift
+	    INPUT=$1
+	    METADATA=$2
+	    OUTPUT="$OUTPUT.pdf"
+	    [ -z "$3" ] || OUTPUT=$3
+	    break;;
+	
+	xmlmodel)
+	    COMMAND="ex"
+	    shift
+	    OUTPUT="$OUTPUT.xml"
+	    [ -z "$1" ] || OUTPUT=$1
+	    break;;
+    esac
+    shift
+done
+
+case "$COMMAND" in
+    u)
+	TMPFILE=`mktemp`
+	$SCRIPTPATH$SCRIPTNAME $METADATA > $TMPFILE
+	gs  -dBATCH\ 
+	    -dNOPAUSE\
+	    -sDEVICE=pdfwrite\
+	    -dPDFSETTINGS=/prepress\
+	    -sOutputFile="$OUTPUT"\
+	    -c "100000000 setvmthreshold"\
+	    -f "$INPUT" "$TMPFILE"
+	rm $TMPFILE;;
+
+    ex)
+	emptyxml > "$OUTPUT";;
+
+    *)
+	helpmsg
+	exit 1;;
+esac

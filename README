@@ -1,5 +1,5 @@
 This project aims to build an utility for managing pdf metadata,
-labeling and bokmarks throught an xml interface. The main reason for
+labeling and bookmarks through an xml interface. The main reason for
 it is to have an easy way to handle metadata for my Kindle ebook.
 
 Current features:
@@ -11,3 +11,9 @@ Future features:
 	* Export information from pdf to xml format
 	* make an installer
 	* make documentation
+
+
+Node: Currently it uses ghostscript with pdfwrite device, setting
+PDFSETTING to /prepress. This means that pdf might get compressed if
+they have high quality images to 300 dpi (the default behavior with
+/prepress).
