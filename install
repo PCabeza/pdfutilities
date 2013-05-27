@@ -1,0 +1,16 @@
+#! /bin/bash
+
+function printmsg {
+    echo execute as root
+    exit 1
+}
+
+
+
+[ `id -u` -eq 0 ] || printmsg
+
+FILEDIR=pdfmetadata
+INSTALLDIR=/usr/local/bin
+
+shopt -s nullglob
+cp $FILEDIR/* $INSTALLDIR

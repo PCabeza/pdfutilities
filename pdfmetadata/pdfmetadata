@@ -96,7 +96,7 @@ case "$COMMAND" in
     u)
 	TMPFILE=`mktemp`
 	$SCRIPTPATH$SCRIPTNAME $METADATA > $TMPFILE
-	gs  -dBATCH\ 
+	gs  -dBATCH\
 	    -dNOPAUSE\
 	    -sDEVICE=pdfwrite\
 	    -dPDFSETTINGS=/prepress\
