@@ -1,0 +1,30 @@
+#! /usr/bin/python
+
+# TODO add informative msg's
+# TODO create exception handling facilities
+# TODO improve configuration parsing
+
+import sys
+from shutil import copy2
+from os import remove
+
+def main(argv=None):
+    if len(argv)<=1 or argv[1]=="configure":
+        with open("configuration.conf","w") as conf:
+            conf.write('INSTALLDIR="./install-test"\n')#"/usr/local/bin"\n')
+            conf.write('TOOLSPATH=""\n')
+            conf.write('PATH2BIN="./pdfmetadata"\n')
+    
+    elif argv[1]=="install":
+        var={}
+        execfile("configuration.conf",var)
+        for file in ["pdfmetadata","xml2gs"]:
+            copy2(var["PATH2BIN"]+"/"+file,var["INSTALLDIR"])
+    
+    elif argv[1]=="clean":
+        remove("configuration.conf")
+
+    return 0
+
+if __name__=="__main__":
+    sys.exit(main(sys.argv))
