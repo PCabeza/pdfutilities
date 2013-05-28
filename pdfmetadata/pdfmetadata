@@ -62,7 +62,7 @@ function emptyxml {
 EOF
 }
 
-SCRIPTPATH=./
+SCRIPTPATH=./ # do not add more code in this line
 SCRIPTNAME=xml2gs
 
 COMMAND=

@@ -15,6 +15,22 @@ except ImportError as err:
     sys.exit(-1)
 
 
+
+# Function to change pdfmetadata source in order to empty the string of
+# tools position
+EMPTYCONST="SCRIPTPATH";
+def copyandsubs(source,dest):
+    if isinstance(source,str):
+        source=open(source,"r")
+    if isinstance(dest,str):
+        dest=open(dest,"w")
+    for line in source:
+        if line.strip().startswith(EMPTYCONST):
+            dest.write(EMPTYCONST+"=;\n")
+        else: dest.write(line)
+
+
+
 def main(argv=None):
     if getuid()!=0:
         print "run in root mode to install"
@@ -39,8 +55,13 @@ def main(argv=None):
             else:
                 raise
 
-        for file in ["pdfmetadata","xml2gs"]:
-            copy2(var["PATH2BIN"]+"/"+file,var["INSTALLDIR"])
+        for file in ["xml2gs"]:
+            copy2(path.join(var["PATH2BIN"],file),var["INSTALLDIR"])
+
+        # Trick to change pdfmetadata file before copying to avoid
+        # having to change it later, and be able to debug in-place
+        copyandsubs(path.join(var["PATH2BIN"],"pdfmetadata"),\
+                    path.join(var["INSTALLDIR"],"pdfmetadata"))
     
     elif argv[1]=="clean":
         remove("configuration.conf")
