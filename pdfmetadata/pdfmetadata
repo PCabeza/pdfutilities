@@ -16,18 +16,22 @@
 function helpmsg { 
     cat << EOF
 Usage: 
-	pdfmetadata [-O] update <input.pdf> <metadata.xml> [output.pdf]
+	pdfmetadata [-O] update <input.(pdf|ps)> <metadata.xml> [output.pdf]
 	pdfmetadata xmlmodel <output.xml>
 
 
 Commands:
 	update		updated metadata information of the pdf
+			if <metadata.xml> is "-" then no metadata will be
+			appended to file, just pass it through GhostScript
 
 	xmlmodel	creates a model xml file of metadata
 
 Switches:
 	-O		overwrite input file instead of writing to output 
 			file, it overrides output file if specified.
+
+	-h		show this help message
 EOF
 }
 
@@ -94,16 +98,19 @@ done
 
 case "$COMMAND" in
     u)
-	TMPFILE=`mktemp`
-	$SCRIPTPATH$SCRIPTNAME $METADATA > $TMPFILE
+	TMPFILE=
+	if [ "$METADATA" != "-" ];then
+	    TMPFILE=`mktemp`
+	    $SCRIPTPATH$SCRIPTNAME $METADATA > $TMPFILE
+	fi
 	gs  -dBATCH\
 	    -dNOPAUSE\
 	    -sDEVICE=pdfwrite\
 	    -dPDFSETTINGS=/prepress\
 	    -sOutputFile="$OUTPUT"\
 	    -c "100000000 setvmthreshold"\
-	    -f "$INPUT" "$TMPFILE"
-	rm $TMPFILE;;
+	    -f "$INPUT" $TMPFILE
+	[ "$METADATA" != "-" ] && rm $TMPFILE;;
 
     ex)
 	emptyxml > "$OUTPUT";;

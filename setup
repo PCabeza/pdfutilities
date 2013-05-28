@@ -15,6 +15,16 @@ except ImportError as err:
     sys.exit(-1)
 
 
+def createconfig(name="configuration.conf"):
+    if path.exists(name):
+        if raw_input("Sure you want to overrite existing file? ")\
+                .strip().lower()[0]!='y':
+            return -1
+    with open(name,"w") as conf:
+            conf.write('INSTALLDIR="/usr/local/bin"\n')
+            conf.write('TOOLSPATH=""\n')
+            conf.write('PATH2BIN="./pdfmetadata"\n')
+    return 0
 
 # Function to change pdfmetadata source in order to empty the string of
 # tools position
@@ -37,14 +47,14 @@ def main(argv=None):
         return -2
 
     if len(argv)<=1 or argv[1]=="configure":
-        with open("configuration.conf","w") as conf:
-            conf.write('INSTALLDIR="./install-test"\n')#"/usr/local/bin"\n')
-            conf.write('TOOLSPATH=""\n')
-            conf.write('PATH2BIN="./pdfmetadata"\n')
-    
+        if createconfig()!=0: return -3
+
+
     elif argv[1]=="install":
         var={}
+        if not path.exists("configuration.conf"): createconfig()
         execfile("configuration.conf",var)
+
 
         # Make install directory it wasn't there
         try:
@@ -65,6 +75,7 @@ def main(argv=None):
     
     elif argv[1]=="clean":
         remove("configuration.conf")
+
 
     return 0
 
