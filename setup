@@ -6,9 +6,20 @@
 
 import sys
 from shutil import copy2
-from os import remove
+from os import remove,makedirs,path
+try:
+    from os import getuid
+except ImportError as err:
+    print "Error importing getuid: ", err
+    print "Aborting install..."
+    sys.exit(-1)
+
 
 def main(argv=None):
+    if getuid()!=0:
+        print "run in root mode to install"
+        return -2
+
     if len(argv)<=1 or argv[1]=="configure":
         with open("configuration.conf","w") as conf:
             conf.write('INSTALLDIR="./install-test"\n')#"/usr/local/bin"\n')
@@ -18,6 +29,16 @@ def main(argv=None):
     elif argv[1]=="install":
         var={}
         execfile("configuration.conf",var)
+
+        # Make install directory it wasn't there
+        try:
+            makedirs(var["INSTALLDIR"])
+        except OSError:
+            if path.exists(var["INSTALLDIR"]):
+                pass
+            else:
+                raise
+
         for file in ["pdfmetadata","xml2gs"]:
             copy2(var["PATH2BIN"]+"/"+file,var["INSTALLDIR"])
     
@@ -25,6 +46,7 @@ def main(argv=None):
         remove("configuration.conf")
 
     return 0
+
 
 if __name__=="__main__":
     sys.exit(main(sys.argv))
