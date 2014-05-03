@@ -6,12 +6,13 @@ todo list:
     TODO: better document code
     TODO: temporary working directory
     TODO: clean up
-    TODO: preserve pdf metadata
+    TODO: eliminate the use of pdftk in metadata
 '''
 import os,re,sys
 from subprocess import Popen as _, PIPE
 from threading import Thread,Lock
 from argparse import ArgumentParser
+from tempfile import NamedTemporaryFile
 
 ## Default configuration ##
 RESOLUTION=200
@@ -56,6 +57,16 @@ def list_files():
 
     return (tiff2hocr,pdfs,tiff2pdf)
 
+def merge_metadata(src,dst):
+    tmp=NamedTemporaryFile(dir=".",delete=False)
+    srcm=_(["pdftk",src,"dump_data"],stdout=PIPE)
+    dstm=_(["pdftk",dst,"update_info","-","output",tmp.name],stdin=srcm.stdout)
+    srcm.stdout.close() # for pipe to work correctly (SIGPIPE) 
+    dstm.communicate()
+    
+    # move temporary file to the actual file
+    os.rename(tmp.name, dst)
+    
 
 class worker(Thread):
     '''
@@ -139,7 +150,7 @@ if __name__=="__main__":
     
     
     ## merge all generated pdfs into a single pdf file ##
-    if not tiff2pdf and not tiff2hocr and pdfs:
+    if not tiff2pdf and not tiff2hocr and pdfs and not os.path.exists(OUTPUT):
         merge_pdfs(pdfs, OUTPUT)
-
+        merge_metadata(INPUT, OUTPUT)
     
