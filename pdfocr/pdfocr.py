@@ -7,23 +7,33 @@ todo list:
     TODO: temporary working directory
     TODO: clean up
     TODO: eliminate the use of pdftk in metadata
+    TODO: some kind of control code to restart previous work
 '''
 import os,re,sys
 from subprocess import Popen as _, PIPE
 from threading import Thread,Lock
 from argparse import ArgumentParser
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile,mkdtemp,gettempdir
 
 ## Default configuration ##
 RESOLUTION=200
 THREADS=4
 OUTPUT="output.pdf"
-INPUT="input.pdf"
+INPUT=None
+CURDIR=os.getcwd()
+TMPDIR=CURDIR
+WORKDIR=None
 
 def create_tiffs(pdf):
-    args=["gs","-dNOPAUSE","-sDEVICE=tiffg4","-dFirstPage=1","-sOutputFile=image%d.tiff",
-     "-r%d"%RESOLUTION,"-q",pdf,"-c","quit"]
+    args=["gs","-dNOPAUSE","-sDEVICE=tiffg4",
+          "-dNumRenderingThreads=%d"%THREADS,
+          "-dFirstPage=1",
+          "-sOutputFile=image%d.tiff",
+          "-r%d"%RESOLUTION,"-q",
+          "-c","30000000 setvmthreshold",
+          "-f",pdf,"-c","quit"]
     p=_(args); p.communicate()
+
 
 
 def call_tesseract(file):
@@ -31,9 +41,16 @@ def call_tesseract(file):
     p=_(args); p.communicate()
 
 
-##
-# @file: tiff file to process
+
 def call_hocr(pdffile,imagefile,hocrfile):
+    '''
+    calls hocr2pdf and generates a pdf from a single page pdf file
+    
+    :param pdffile: the output pdf filename
+    :param imagefile: the input image filename
+    :param hocrfile: the input hocr filename
+    '''
+    
     args=["hocr2pdf","-i",imagefile,"-o",pdffile]
     p=_(args,stdin=PIPE)
     with open(hocrfile,"r") as hocr:
@@ -41,7 +58,11 @@ def call_hocr(pdffile,imagefile,hocrfile):
 
 
 def merge_pdfs(pdflist,output):
-    args=["gs","-dBATCH","-dNOPAUSE","-q","-sDEVICE=pdfwrite","-sOutputFile="+output]+pdflist
+    args=["gs","-dBATCH","-dNOPAUSE","-q","-sDEVICE=pdfwrite",
+          "-dNumRenderingThreads=%d"%THREADS,
+          "-sOutputFile="+output,
+          "-c","30000000 setvmthreshold",
+          "-f"]+pdflist
     p=_(args); p.communicate()
 
     
@@ -56,6 +77,7 @@ def list_files():
       key=lambda x: int(re.match("image(\d+)\.tiff\.pdf",x).group(1)))
 
     return (tiff2hocr,pdfs,tiff2pdf)
+
 
 def merge_metadata(src,dst):
     tmp=NamedTemporaryFile(dir=".",delete=False)
@@ -91,6 +113,10 @@ class worker(Thread):
     
     
 class DummyLock():
+    '''
+    Auxiliary class to be used for synchronizing when there is 
+    just 1 thread in use
+    '''
     def acquire(self): pass
     def release(self): pass
     def __exit__(self,*args,**kwargs): pass
@@ -98,9 +124,48 @@ class DummyLock():
 
 
 
-    
+####################
+##  MAIN PROGRAM  ##
+####################
+
 if __name__=="__main__":
-    if len(sys.argv)>1: INPUT=sys.argv[1]
+    
+    ## Parse arguments ##
+    parser=ArgumentParser(prog="pdfocr.py",
+                          description="Script that uses some standard tools to "+
+                          "generate a searchable pdf file. It depends on "+
+                          "gs, pdftk and hocr2pdf utilities.")
+    
+    parser.add_argument("input",type=str,default=INPUT,nargs="?",
+                        help="input pdf file to be processed.")
+    parser.add_argument("output",type=str,default=OUTPUT,nargs="?",
+                        help="output pdf filename.")
+    parser.add_argument("-T","--threads",dest="nthr",type=int,default=THREADS,
+                        help="Specify the number of threads to use while processing the pdf.")
+    parser.add_argument("-R","--resolution",dest="res",type=int,default=RESOLUTION,
+                        help="resolution for intermediate images, those images will be then "+
+                        "renderered together to generate the pdf file.")
+    parser.add_argument("-t","--temp",dest="temp",action="store_true",default=False,
+                        help="if specified use system temporary directory.")
+    args=parser.parse_args()
+    
+    # Set variables to parsed argument values
+    INPUT=args.input
+    OUTPUT=args.output
+    THREADS=args.nthr
+    RESOLUTION=args.res
+    TMPDIR= gettempdir() if args.temp else TMPDIR
+    
+    # Set input and output to absolute paths
+    INPUT=os.path.join(CURDIR,INPUT)
+    OUTPUT=os.path.join(CURDIR,OUTPUT)
+    WORKDIR=mkdtemp(dir=TMPDIR) # create working folder
+    
+    os.chdir(WORKDIR) # change to the working directory
+    
+#     print INPUT,OUTPUT,WORKDIR
+#     os.rmdir(WORKDIR)
+#     exit(1)
     
     ## Start by getting the current process state, ## 
     ## in case of continuing previous work         ##
