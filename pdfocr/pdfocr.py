@@ -1,5 +1,9 @@
 #! /usr/bin/python -O
 '''
+
+:version: 1.0
+:author: Pablo Cabeza
+
 todo list:
     TODO: error handling overall
     TODO: parameter parsing
@@ -25,6 +29,15 @@ TMPDIR=CURDIR
 WORKDIR=None
 
 def create_tiffs(pdf):
+    '''
+    Split pdf into images for each page of the pdf. The images are
+    output in tiff format and named "image<page-number>.tiff".
+    
+    .. note:: The images are generated in the current directory.
+    .. note:: ghostscript with tiffg4 device is used.
+    
+    :param pdf: the path to the pdf file.
+    '''
     args=["gs","-dNOPAUSE","-sDEVICE=tiffg4",
           "-dNumRenderingThreads=%d"%THREADS,
           "-dFirstPage=1",
@@ -37,6 +50,12 @@ def create_tiffs(pdf):
 
 
 def call_tesseract(file):
+    '''
+    Calls tesseract to generate the hocr of a page. The output pdf
+    file name is the image filename plus ".pdf" extension.
+    
+    :param file: the path to the page image
+    '''
     args=["tesseract",file,file,"hocr"]
     p=_(args); p.communicate()
 
@@ -44,7 +63,7 @@ def call_tesseract(file):
 
 def call_hocr(pdffile,imagefile,hocrfile):
     '''
-    calls hocr2pdf and generates a pdf from a single page pdf file
+    calls hocr2pdf and generates a pdf from a single page pdf file.
     
     :param pdffile: the output pdf filename
     :param imagefile: the input image filename
@@ -58,6 +77,14 @@ def call_hocr(pdffile,imagefile,hocrfile):
 
 
 def merge_pdfs(pdflist,output):
+    '''
+    Merge the pdf files into a single one. The page order is the
+    same as the order of the list. 
+    
+    .. note:: ghostscript with pdfwrite is used for this process.
+    :param pdflist: list of pdf filenames
+    :param output: the name of the output pdf
+    '''
     args=["gs","-dBATCH","-dNOPAUSE","-q","-sDEVICE=pdfwrite",
           "-dNumRenderingThreads=%d"%THREADS,
           "-sOutputFile="+output,
@@ -80,6 +107,11 @@ def list_files():
 
 
 def merge_metadata(src,dst):
+    '''
+    Sets the metadata of dst to the metadata of src pdf files.
+    
+    .. note:: pdftk is used for extracting and updating the metadata.
+    '''
     tmp=NamedTemporaryFile(dir=".",delete=False)
     srcm=_(["pdftk",src,"dump_data"],stdout=PIPE)
     dstm=_(["pdftk",dst,"update_info","-","output",tmp.name],stdin=srcm.stdout)
@@ -94,7 +126,9 @@ class worker(Thread):
     '''
     General worker class to be used in various concurrent functions.
     The way it works is by iterating a list and passing the callback
-    method each element using the lock for syncronizing.
+    method each element using the lock for syncronizing. This way the
+    processors can be used more efficiently for spawning a set number
+    processes.
     '''
     
     def __init__(self,queue,lock,callback):
@@ -115,7 +149,7 @@ class worker(Thread):
 class DummyLock():
     '''
     Auxiliary class to be used for synchronizing when there is 
-    just 1 thread in use
+    just 1 thread in use, its methods does nothing.
     '''
     def acquire(self): pass
     def release(self): pass
@@ -163,9 +197,7 @@ if __name__=="__main__":
     
     os.chdir(WORKDIR) # change to the working directory
     
-#     print INPUT,OUTPUT,WORKDIR
 #     os.rmdir(WORKDIR)
-#     exit(1)
     
     ## Start by getting the current process state, ## 
     ## in case of continuing previous work         ##
