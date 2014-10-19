@@ -9,7 +9,7 @@
 pdfocr.py is an script that mixes some other utilities to process a pdf
 consisting of images through ocr software (optical character recognition) to make the pdf searchable.
 
-I tried to use `pdfocr<https://github.com/gkovacs/pdfocr>`_ ruby script, but the resulting pdf greatly exceeded the original pdf size in most cases, so I created my own version of it.
+I tried to use `pdfocr <https://github.com/gkovacs/pdfocr>`_ ruby script, but the resulting pdf greatly exceeded the original pdf size in most cases, so I created my own version of it.
 
 
 Dependencies
